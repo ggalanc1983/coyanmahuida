@@ -1,0 +1,111 @@
+RECORRIDO VIRTUAL COYANMAHUIDA - VERSION WEB
+============================================
+
+Conversión del proyecto Unity/Oculus (escena Coyanmahuida.unity) a un sitio web
+que funciona en computador, celular y también en el navegador del Meta Quest.
+
+VER EN ESTE COMPUTADOR
+  Doble clic en "Abrir_recorrido.bat". Se abre el navegador en http://localhost:8080
+  (cierra la ventana negra para detenerlo).
+  Ojo: abrir index.html con doble clic NO funciona; los navegadores bloquean WebGL
+  e imágenes cuando la página se abre como archivo local.
+
+PUBLICAR EN INTERNET
+  Sube TODA la carpeta Web_Recorrido (index.html, vendor/, panos/) a cualquier
+  hosting estático: GitHub Pages, Netlify, Cloudflare Pages, el servidor de la
+  institución, etc. No necesita base de datos ni nada en el servidor.
+  Los archivos .bat, .ps1 y este LEEME no hacen falta en el hosting.
+
+CONTENIDO
+  index.html      Visor (Photo Sphere Viewer 5 + three.js, incluidos en vendor/).
+  ambiente.js     Sonido ambiente generado (viento y aves).
+  logo-citt.png   Logo "Desarrollado por" (CITT Duoc UC).
+  info.js         TEXTOS: introducción, cierre y botones informativos de cada punto.
+                  Edítalo con cualquier editor de texto (Bloc de notas, VS Code).
+  panos/<n>/      Una carpeta por foto 360:
+                  base.jpg   2048 px, carga inicial rápida
+                  tiles/     mosaico de 8192 px (16x8 piezas) para ver nítido al hacer zoom
+                  pano.jpg   4096 px, versión de una sola imagen (respaldo)
+                  thumb.jpg  miniatura para la tira de puntos
+  El visor usa los tiles si existen; si no, usa pano.jpg.
+
+INTRO, BOTONES INFORMATIVOS Y CIERRE
+  - Al abrir, aparece una introducción sobre el parque (con fuentes) y el botón
+    "Comenzar recorrido". El botón (i) de la barra la vuelve a mostrar.
+  - Los botones ámbar en las fotos abren una ficha (flora, fauna, historia, paisaje,
+    visita). Los botones NARANJOS son avisos y recomendaciones (piso resbaladizo,
+    llévate tu basura, sol directo, etc.). En total hay 36 botones.
+  - La introducción y el cierre incluyen la sección "Antes de ir": dificultad,
+    duración, altura, ropa y calzado, sol y agua, y cuidado del parque. Se edita en
+    info.js (INTRO.tips).
+  - La flecha del último punto (borde ámbar) lleva a la pantalla final, que muestra
+    cuántas fichas se descubrieron y permite recorrer otra vez.
+  - Para agregar o mover un botón, edita info.js: cada uno tiene yaw (horizontal,
+    0 = centro de la foto, positivo a la derecha) y pitch (vertical, positivo arriba).
+    Truco: abre index.html?debug y en la consola del navegador escribe
+    __tour.viewer.getPosition() para ver dónde estás mirando (en radianes;
+    multiplica por 57,3 para pasar a grados).
+  - Las fichas de especies (roble, peumo, laurel, lingue, olivillo, boldo,
+    naranjillo) describen especies registradas en el parque. El botón está puesto
+    sobre árboles del bosque como referencia, pero no identifica ese ejemplar exacto.
+    Si conoces la especie real de algún árbol, ajusta el texto o la posición.
+
+SONIDO AMBIENTE
+  - Comienza al presionar "Comenzar" (los navegadores no permiten sonido antes de
+    un clic). Suena continuo: no se corta al cambiar de foto.
+  - Botón del parlante en la barra: abre un panel con dos interruptores y volumen:
+      Naturaleza   (aves, viento y hojas)
+      Música suave (acordes lentos y notas tipo campana, muy tenue)
+    Cada uno se activa o desactiva por separado; la preferencia se recuerda.
+  - La música también se genera en ambiente.js: es una composición original, por lo
+    que no requiere permisos ni pago de derechos de reproducción.
+  - El sonido se genera en el navegador con ambiente.js (no usa archivos de audio)
+    y va cambiando solo entre momentos de calma (solo viento y hojas), aves sueltas
+    con pausas largas y breves momentos de más actividad. Cada ave tiene su propia
+    voz y el grupo de aves se renueva; de vez en cuando suena un carpintero lejano
+    o un susurro de hojas. Las duraciones se ajustan en SCENES dentro de ambiente.js.
+  - Para usar una grabación real, crea la carpeta audio/ y copia ahí un archivo
+    llamado ambiente.mp3. Si existe, se usa en lugar del sonido generado, en bucle.
+    Usa una grabación propia o con licencia libre.
+
+MAPA
+  - Panel a la derecha con el sendero y los 22 puntos, dibujado con las coordenadas
+    GPS que la cámara Insta360 guardó en cada foto (suavizadas, porque bajo los
+    árboles el GPS tiene algunos metros de error).
+  - Punto ámbar: dónde estás. El cono indica hacia dónde miras. Tramo verde: lo
+    ya recorrido. Clic en un punto para ir a él. Botón del mapa en la barra: mostrar
+    u ocultar (en celular parte oculto).
+
+CONTROLES
+  Arrastrar: mirar alrededor. Rueda / pellizco: zoom.
+  Flechas en el suelo o botones < >: avanzar / retroceder (fundido a negro como en VR).
+  Botones ámbar: abrir ficha informativa. Esc: cerrarla.
+  Shift + flechas del teclado, Re Pág / Av Pág o Espacio: cambiar de punto.
+  Botón de cuadrícula: ir directo a cualquier punto.
+  En celular: botón del teléfono para mirar moviendo el celular (giroscopio).
+    IMPORTANTE: los navegadores solo entregan los sensores de movimiento cuando la
+    página se abre desde una dirección https:// propia. NO funciona dentro de la
+    vista previa de Claude (los sensores están bloqueados ahí) ni con
+    Abrir_recorrido.bat desde otro equipo. Funciona al publicar la carpeta en GitHub
+    Pages, Netlify u otro hosting con https. En iPhone hay que aceptar el permiso
+    de "Movimiento y orientación". Si no se puede, el botón muestra un aviso.
+  La dirección de la URL (#punto-5) permite compartir un punto específico.
+
+QUÉ SE TRASPASÓ DESDE UNITY
+  - Orden de las esferas (lista del Recorrido360Manager). Ahora el recorrido es
+    lineal (intro -> 22 puntos -> cierre) en vez de circular.
+  - Rotación Y de cada skydome: al cambiar de punto se conserva hacia dónde miras,
+    igual que en el Quest.
+  - Posición de las flechas "Teleport Hotspot Avanzar / Retroceder" de cada esfera.
+
+AJUSTES (en index.html, arriba del script)
+  NODES     lista de puntos: id de la foto, rotY y posición [yaw, pitch] de cada flecha.
+  FADE_MS   duración del fundido.
+
+NOTAS
+  - La esfera 201 no estaba en la lista del Recorrido360Manager en Unity (por eso
+    en el Quest nunca aparecía). Aquí se agregó como punto 22, al final. Para
+    quitarla, borra su línea en NODES.
+  - En las esferas 158, 198 y 201, la flecha "Retroceder" tenía la posición por
+    defecto (en la 158 quedaba encima de "Avanzar"). El visor la mueve al lado
+    opuesto cuando dos flechas quedan a menos de 25 grados.

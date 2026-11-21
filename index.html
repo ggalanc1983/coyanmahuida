@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recorrido Coyanmahuida</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="vendor/psv-core.css">
+<link rel="stylesheet" href="vendor/psv-markers-plugin.css">
+<style>
+/*
+VOICE: calma de sendero; la foto manda, la interfaz se retira.
+IDEA: señalética de parque — placas de madera oscura, texto claro, flechas de sendero.
+PICTURE: la panorámica 360 a pantalla completa; flechas sobre el suelo y botones de información.
+COLOUR and TYPE: verde bosque profundo #0f2a1d, musgo #a6d36b de acento, ámbar #f0b54a para información; Figtree.
+LAYOUT: visor completo; placa de título; barra abajo; ficha informativa lateral; intro y cierre a pantalla completa.
+*/
+:root{--bg:#0b1f15;--panel:rgba(12,34,23,.86);--ink:#f3f1e8;--muted:#c3cfbf;--moss:#a6d36b;--amber:#f0b54a;--line:rgba(243,241,232,.16)}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 Figtree,system-ui,sans-serif;overflow:hidden}
+#viewer{position:fixed;inset:0}
+.plate{position:fixed;z-index:20;background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px}
+#title{top:max(14px,env(safe-area-inset-top));left:14px;padding:12px 16px;max-width:calc(100vw - 28px)}
+#title h1{margin:0;font-size:20px;line-height:1.1;font-weight:800;letter-spacing:-.01em}
+#title p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+#bar{left:50%;transform:translateX(-50%);bottom:max(14px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:6px;padding:6px}
+button{font:inherit}
+#bar button{all:unset;cursor:pointer;display:grid;place-items:center;min-width:44px;height:44px;border-radius:10px;color:var(--ink)}
+#bar button:hover{background:rgba(255,255,255,.08)}
+#bar button:focus-visible,.btn:focus-visible,#card .x:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
+#bar button[aria-pressed=true]{color:var(--moss)}
+#bar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#count{padding:0 10px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:15px}
+#count b{color:var(--moss)}
+.sep{width:1px;height:24px;background:var(--line)}
+#strip{left:14px;right:14px;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 68px);padding:8px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;transition:opacity .25s,transform .25s}
+#strip[hidden]{display:flex;opacity:0;transform:translateY(12px);pointer-events:none}
+#strip button{all:unset;cursor:pointer;flex:none;width:132px;border-radius:8px;overflow:hidden;position:relative;border:2px solid transparent}
+#strip button.on{border-color:var(--moss)}
+#strip button:focus-visible{outline:2px solid var(--moss)}
+#strip img{display:block;width:100%;aspect-ratio:2/1;object-fit:cover}
+#strip span{position:absolute;left:6px;bottom:4px;font-size:13px;font-weight:600;text-shadow:0 1px 3px #000}
+#help{top:max(14px,env(safe-area-inset-top));right:14px;padding:10px 14px;font-size:13px;color:var(--muted);max-width:280px;transition:opacity .4s}
+#help.gone{opacity:0;pointer-events:none}
+#help i{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--amber);color:#2a1a00;font-style:normal;font-weight:800;font-size:12px;vertical-align:-3px}
+/* flechas de sendero sobre el suelo */
+.arrow{width:96px;height:96px;display:grid;place-items:center;cursor:pointer;perspective:300px}
+.arrow .disc{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle,rgba(166,211,107,.38) 0,rgba(166,211,107,.12) 55%,transparent 70%);
+  border:3px solid rgba(243,241,232,.92);box-shadow:0 0 18px rgba(166,211,107,.55),inset 0 0 12px rgba(0,0,0,.35);
+  transform:rotateX(58deg);transition:transform .2s,background .2s}
+.arrow svg{width:46px;height:46px;fill:none;stroke:#fff;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+.arrow.prev svg{transform:rotate(180deg)}
+.arrow.end .disc{border-color:var(--amber);box-shadow:0 0 18px rgba(240,181,74,.6),inset 0 0 12px rgba(0,0,0,.35)}
+.arrow:hover .disc{transform:rotateX(50deg) scale(1.12);background:radial-gradient(circle,rgba(166,211,107,.6) 0,rgba(166,211,107,.2) 60%,transparent 72%)}
+/* botones informativos */
+.hot{width:52px;height:52px;display:grid;place-items:center;cursor:pointer}
+.hot .dot{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--amber);color:#2a1a00;
+  box-shadow:0 0 0 4px rgba(240,181,74,.35),0 4px 14px rgba(0,0,0,.45);transition:transform .2s}
+.hot svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.hot:hover .dot{transform:scale(1.15)}
+.hot.seen .dot{background:#f6dca8}
+.hot.aviso .dot{background:#ff7a59;color:#2b0b00;box-shadow:0 0 0 4px rgba(255,122,89,.35),0 4px 14px rgba(0,0,0,.45)}
+.hot.aviso.seen .dot{background:#ffc2b0}
+#card.warn{border-color:rgba(255,122,89,.5)}#card.warn .tag{color:#ff9b80}
+.tips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:8px 0 24px}
+.tip{padding:14px 14px 12px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.tip header{display:flex;align-items:center;gap:8px;color:var(--moss);font-size:13px;font-weight:700}
+.tip header svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tip b{display:block;margin:6px 0 4px;font-size:18px;line-height:1.2}
+.tip p{margin:0;font-size:14px;color:var(--muted)}
+h2.sec{margin:6px 0 10px;font-size:22px;font-weight:800}
+@media (max-width:900px){.tips{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.tips{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:no-preference){.arrow .disc{animation:pulse 2.4s ease-in-out infinite}.hot .dot{animation:ring 2.4s ease-in-out infinite}}
+@keyframes pulse{50%{box-shadow:0 0 28px rgba(166,211,107,.85),inset 0 0 12px rgba(0,0,0,.35)}}
+@keyframes ring{50%{box-shadow:0 0 0 9px rgba(240,181,74,.12),0 4px 14px rgba(0,0,0,.45)}}
+.psv-tooltip{font-family:Figtree,system-ui,sans-serif;font-weight:600}
+/* ficha informativa */
+#card{top:max(84px,calc(env(safe-area-inset-top) + 84px));right:14px;width:min(380px,calc(100vw - 28px));max-height:calc(100vh - 190px);overflow:auto;padding:20px 22px 22px;
+  transition:opacity .25s,transform .25s;border-color:rgba(240,181,74,.35)}
+#card[hidden]{display:block;opacity:0;transform:translateX(16px);pointer-events:none}
+#card .tag{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--amber)}
+#card .tag svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#card h2{margin:6px 0 2px;font-size:24px;line-height:1.15;font-weight:800;text-wrap:balance}
+#card .sci{margin:0 0 10px;color:var(--muted);font-style:italic}
+#card p.txt{margin:10px 0 0;font-size:16px;color:#e9ece2}
+#card .x{all:unset;cursor:pointer;position:absolute;top:10px;right:10px;width:40px;height:40px;display:grid;place-items:center;border-radius:10px;color:var(--muted)}
+#card .x:hover{background:rgba(255,255,255,.08);color:var(--ink)}
+#card .x svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+/* intro y cierre */
+.screen{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:24px;overflow:auto;
+  background:linear-gradient(180deg,rgba(6,20,13,.55),rgba(6,20,13,.88) 60%,rgba(6,20,13,.96));backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:opacity .6s}
+.screen[hidden]{display:grid;opacity:0;pointer-events:none}
+.screen .box{width:min(820px,100%);margin:auto}
+.eyebrow{display:flex;align-items:center;gap:10px;color:var(--moss);font-weight:600;font-size:15px}
+.eyebrow svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.screen h1{margin:10px 0 14px;font-size:clamp(38px,7vw,68px);line-height:1.02;font-weight:800;letter-spacing:-.02em;text-wrap:balance}
+.screen .sub{margin:0 0 22px;font-size:18px;color:var(--muted)}
+.screen p.body{margin:0 0 14px;font-size:17px;max-width:68ch;color:#e6eadf}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:22px 0 26px}
+.stat{border-top:2px solid var(--moss);padding-top:8px}
+.stat b{display:block;font-size:clamp(26px,4vw,36px);line-height:1;font-weight:800}
+.stat span{font-size:13px;color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:0 22px;border-radius:12px;font-weight:700;font-size:17px;background:var(--moss);color:#10240f}
+.btn:hover{filter:brightness(1.08)}
+.btn[hidden]{display:none}
+.btn.big{min-height:58px;padding:0 34px;font-size:20px;box-shadow:0 8px 28px rgba(166,211,107,.35)}
+#intro .actions{position:sticky;bottom:-24px;padding:16px 0 20px;margin:0 -4px;background:linear-gradient(rgba(6,20,13,0),rgba(6,20,13,.96) 35%)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+details.src{margin-top:22px;font-size:14px;color:var(--muted)}
+details.src summary{cursor:pointer;font-weight:600}
+details.src ul{margin:8px 0 0;padding-left:18px}
+details.src a{color:var(--moss)}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin:0 0 22px;font-size:14px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend .l1{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(166,211,107,.8)}
+.legend .l2{width:22px;height:22px;border-radius:50%;background:var(--amber)}
+.legend .l3{width:22px;height:22px;border-radius:50%;background:#ff7a59}
+.visit{margin:18px 0 24px;padding:14px 16px;border-left:3px solid var(--amber);background:rgba(240,181,74,.08);border-radius:0 10px 10px 0;font-size:15px;color:#efe7d3}
+
+/* posiciones: ficha a la izquierda, ayuda arriba al centro */
+#card{top:max(84px,calc(env(safe-area-inset-top) + 84px));left:14px;right:auto}
+#card[hidden]{transform:translateX(-16px)}
+#help{left:50%;right:auto;transform:translateX(-50%)}
+/* mapa */
+#map{top:max(14px,env(safe-area-inset-top));right:14px;width:300px;padding:10px 12px 12px;transition:opacity .25s,transform .25s}
+#map[hidden]{display:block;opacity:0;transform:translateX(16px);pointer-events:none}
+#map header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+#map h2{margin:0;font-size:15px;font-weight:800}
+#map h2 small{font-weight:400;color:var(--muted);font-size:13px;margin-left:6px}
+#map .x{all:unset;cursor:pointer;width:32px;height:32px;display:grid;place-items:center;border-radius:8px;color:var(--muted)}
+#map .x:hover{background:rgba(255,255,255,.08);color:var(--ink)}
+#map .x svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+#mapSvg{display:block;width:100%;height:auto;border-radius:10px;background:radial-gradient(circle at 40% 40%,rgba(166,211,107,.10),rgba(0,0,0,.18))}
+#mapSvg .trail-case{fill:none;stroke:rgba(0,0,0,.45);stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+#mapSvg .trail{fill:none;stroke:#d9cfa8;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 6}
+#mapSvg .done{fill:none;stroke:var(--moss);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+#mapSvg .pt{cursor:pointer}
+#mapSvg .pt circle.d{fill:#173527;stroke:#d9cfa8;stroke-width:1.6;transition:r .2s}
+#mapSvg .pt.v circle.d{fill:var(--moss);stroke:#0f2a1d}
+#mapSvg .pt:hover circle.d{r:7}
+#mapSvg .pt text{font:600 10px Figtree,system-ui,sans-serif;fill:#f3f1e8;paint-order:stroke;stroke:#0b1f15;stroke-width:3px;pointer-events:none}
+#mapSvg .cone{fill:rgba(240,181,74,.32);stroke:rgba(240,181,74,.75);stroke-width:1}
+#mapSvg .me{fill:var(--amber);stroke:#2a1a00;stroke-width:2}
+#mapSvg .lbl{font:700 10px Figtree,system-ui,sans-serif;fill:var(--amber);paint-order:stroke;stroke:#0b1f15;stroke-width:3px}
+#mapSvg .n{font:800 11px Figtree,system-ui,sans-serif;fill:#f3f1e8}
+#mapSvg .scale{stroke:#f3f1e8;stroke-width:2}
+#mapSvg .st{font:600 9px Figtree,system-ui,sans-serif;fill:var(--muted)}
+#map .note{margin:6px 0 0;font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){#mapSvg .ring{animation:ringm 2s ease-out infinite;transform-box:fill-box;transform-origin:center}}
+@keyframes ringm{from{opacity:.9;transform:scale(1)}to{opacity:0;transform:scale(2.6)}}
+#mapSvg .ring{fill:none;stroke:var(--amber);stroke-width:2}
+/* panel de sonido */
+#soundPanel{left:50%;transform:translateX(-50%);bottom:calc(max(14px,env(safe-area-inset-bottom)) + 68px);width:min(380px,calc(100vw - 20px));padding:10px 14px;display:grid;gap:4px;transition:opacity .2s}
+#soundPanel[hidden]{display:grid;opacity:0;pointer-events:none}
+.srow{display:grid;grid-template-columns:auto minmax(0,1fr) 110px;align-items:center;gap:12px;padding:8px 0}
+.srow+.srow{border-top:1px solid var(--line)}
+.sl b{display:block;font-size:15px}.sl small{color:var(--muted);font-size:12px}
+.sw{position:relative;width:44px;height:26px;flex:none;cursor:pointer}
+.sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.sw span{position:absolute;inset:0;border-radius:13px;background:rgba(255,255,255,.18);transition:background .2s}
+.sw span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#f3f1e8;transition:transform .2s}
+.sw input:checked+span{background:var(--moss)}.sw input:checked+span::after{transform:translateX(18px)}
+.sw input:focus-visible+span{outline:2px solid var(--moss);outline-offset:2px}
+.srow input[type=range]{width:100%;accent-color:var(--moss)}
+.srow input[type=range]:disabled{opacity:.35}
+#toast{left:50%;transform:translateX(-50%);top:max(90px,calc(env(safe-area-inset-top) + 90px));width:max-content;max-width:min(460px,calc(100vw - 24px));padding:12px 16px;font-size:15px;z-index:45;border-color:rgba(166,211,107,.4);transition:opacity .3s}
+#toast[hidden]{display:block;opacity:0;pointer-events:none}
+/* marca */
+#brand{position:fixed;z-index:19;left:16px;bottom:max(14px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:3px;pointer-events:auto;text-decoration:none}
+#brand span{font-size:11px;font-weight:600;color:#e9ece2;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+#brand img{display:block;width:180px;height:auto;filter:drop-shadow(0 1px 4px rgba(0,0,0,.7))}
+.screen .made{display:flex;align-items:center;gap:14px;margin-top:26px;color:var(--muted);font-size:13px}
+.screen .made img{width:210px;height:auto}
+@media (max-width:1000px){#map{width:250px}#brand img{width:150px}}
+@media (max-width:900px){
+  #card{top:auto;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 68px);right:10px;left:10px;width:auto;max-height:55vh}
+  #card[hidden]{transform:translateY(16px)}
+  #brand{left:auto;right:12px;bottom:auto;top:max(14px,env(safe-area-inset-top));align-items:flex-end}
+  #brand img{width:120px}#brand span{font-size:10px}
+  #map{top:max(84px,calc(env(safe-area-inset-top) + 84px));right:10px;width:min(300px,calc(100vw - 20px))}
+}
+#err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;z-index:50;background:var(--bg)}
+@media (max-width:600px){#title h1{font-size:17px}#bar{gap:2px;padding:4px;max-width:calc(100vw - 16px)}#bar button{min-width:35px}#count .lbl{display:none}#help{display:none}#strip button{width:104px}#count{font-size:14px;padding:0 4px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #card{top:auto;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 68px);right:10px;left:10px;width:auto;max-height:55vh}
+  #card[hidden]{transform:translateY(16px)}}
+</style>
+</head>
+<body>
+<div id="viewer"></div>
+<header id="title" class="plate"><h1>Sendero Coyanmahuida</h1><p id="sub">Recorrido virtual 360°</p></header>
+<div id="help" class="plate gone">Arrastra para mirar alrededor. Usa las flechas del suelo para avanzar y toca los botones <i>i</i> para descubrir el bosque.</div>
+<aside id="card" class="plate" hidden aria-live="polite">
+  <button class="x" id="cardClose" aria-label="Cerrar ficha"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div class="tag" id="cardTag"></div>
+  <h2 id="cardTitle"></h2>
+  <p class="sci" id="cardSci"></p>
+  <p class="txt" id="cardText"></p>
+</aside>
+<nav id="strip" class="plate" hidden aria-label="Puntos del recorrido"></nav>
+<section id="map" class="plate" aria-label="Mapa del sendero">
+  <header><h2>Mapa del sendero<small id="mapPos"></small></h2>
+  <button class="x" id="mapClose" aria-label="Ocultar mapa"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+  <svg id="mapSvg" viewBox="0 0 300 300" role="img" aria-label="Mapa con los puntos del recorrido"></svg>
+  <p class="note">Toca un punto para ir a él. El cono muestra hacia dónde miras.</p>
+</section>
+<div id="brand"><span>Desarrollado por</span><img src="logo-citt.png" alt="CITT Duoc UC — Centro de Innovación y Transferencia Tecnológica"></div>
+<section id="soundPanel" class="plate" hidden aria-label="Sonido">
+  <div class="srow"><label class="sw"><input type="checkbox" id="swNature"><span></span></label><div class="sl"><b>Naturaleza</b><small>Aves, viento y hojas</small></div><input type="range" id="volNature" min="0" max="100" aria-label="Volumen naturaleza"></div>
+  <div class="srow"><label class="sw"><input type="checkbox" id="swMusic"><span></span></label><div class="sl"><b>Música suave</b><small>Original, sin derechos</small></div><input type="range" id="volMusic" min="0" max="100" aria-label="Volumen música"></div>
+</section>
+<nav id="bar" class="plate" aria-label="Navegación">
+  <button id="bPrev" title="Punto anterior (Shift + ←)" aria-label="Punto anterior"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <div id="count"><span class="lbl">Punto </span><b>1</b> / 22</div>
+  <button id="bNext" title="Punto siguiente (Shift + →)" aria-label="Punto siguiente"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+  <span class="sep"></span>
+  <button id="bStrip" title="Ver todos los puntos" aria-label="Ver todos los puntos" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="7" height="6" rx="1"/><rect x="14" y="5" width="7" height="6" rx="1"/><rect x="3" y="14" width="7" height="6" rx="1"/><rect x="14" y="14" width="7" height="6" rx="1"/></svg></button>
+  <button id="bSound" title="Sonido y música" aria-label="Sonido y música" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w1" d="M16.5 9.5a4 4 0 0 1 0 5"/><path class="w2" d="M19 7a7.5 7.5 0 0 1 0 10"/><path class="mute" d="M16 9l5 6M21 9l-5 6" style="display:none"/></svg></button>
+  <button id="bMap" title="Mapa del sendero" aria-label="Mapa del sendero" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M9 4l-6 2v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg></button>
+  <button id="bAbout" title="Acerca del parque" aria-label="Acerca del parque"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
+  <button id="bGyro" title="Mover con el teléfono" aria-label="Mover con el teléfono" aria-pressed="false" hidden><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></button>
+  <button id="bFull" title="Pantalla completa" aria-label="Pantalla completa"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</nav>
+
+<section id="intro" class="screen" aria-labelledby="introTitle">
+  <div class="box">
+    <div class="eyebrow"><svg viewBox="0 0 32 32"><path d="M16 3l7 10h-4l6 8h-5l5 7H7l5-7H7l6-8H9z"/><path d="M16 28v2"/></svg>Recorrido virtual 360°</div>
+    <h1 id="introTitle"></h1>
+    <p class="sub" id="introSub"></p>
+    <div id="introBody"></div>
+    <div class="stats" id="introStats"></div>
+    <h2 class="sec">Antes de ir</h2>
+    <div class="tips" id="introTips"></div>
+    <div class="legend"><span><i class="l1"></i>Flecha en el suelo: avanzar o retroceder</span><span><i class="l2"></i>Botón ámbar: información del lugar</span><span><i class="l3"></i>Botón naranjo: aviso o recomendación</span></div>
+    <div class="actions">
+      <button class="btn big" id="bStart"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg>Comenzar</button>
+      <button class="btn ghost" id="bResume" hidden>Seguir donde estaba</button>
+    </div>
+    <details class="src"><summary>Fuentes de la información</summary><ul id="introSrc"></ul></details>
+    <div class="made"><span>Desarrollado por</span><img src="logo-citt.png" alt="CITT Duoc UC"></div>
+  </div>
+</section>
+
+<section id="outro" class="screen" hidden aria-labelledby="outroTitle">
+  <div class="box">
+    <div class="eyebrow"><svg viewBox="0 0 32 32"><path d="M6 17l6 6L26 9"/></svg>Fin del sendero</div>
+    <h1 id="outroTitle"></h1>
+    <p class="body" id="outroText"></p>
+    <p class="sub" id="outroSeen"></p>
+    <div class="visit" id="outroVisit"></div>
+    <h2 class="sec">Si vas en persona</h2>
+    <div class="tips" id="outroTips"></div>
+    <div class="actions">
+      <button class="btn" id="bAgain"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v5h5"/></svg>Recorrer otra vez</button>
+      <button class="btn ghost" id="bBack">Volver al último punto</button>
+      <button class="btn ghost" id="bToIntro">Ver introducción</button>
+    </div>
+    <div class="made"><span>Desarrollado por</span><img src="logo-citt.png" alt="CITT Duoc UC"></div>
+  </div>
+</section>
+
+<div id="toast" class="plate" role="status" hidden></div>
+<div id="err"><div><h1>No se pudo iniciar el visor</h1><p>Este recorrido necesita WebGL y debe abrirse desde un servidor web (no con doble clic sobre el archivo). Revisa LEEME.txt.</p></div></div>
+
+<script type="importmap">
+{"imports":{
+  "three":"./vendor/three.module.min.js",
+  "@photo-sphere-viewer/core":"./vendor/psv-core.js",
+  "@photo-sphere-viewer/markers-plugin":"./vendor/psv-markers-plugin.js",
+  "@photo-sphere-viewer/equirectangular-tiles-adapter":"./vendor/psv-equirectangular-tiles-adapter.js",
+  "@photo-sphere-viewer/gyroscope-plugin":"./vendor/psv-gyroscope-plugin.js"
+}}
+</script>
+<script type="module">
+import { Viewer } from '@photo-sphere-viewer/core';
+import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin';
+import { EquirectangularTilesAdapter } from '@photo-sphere-viewer/equirectangular-tiles-adapter';
+import { GyroscopePlugin } from '@photo-sphere-viewer/gyroscope-plugin';
+import { INFO, INTRO, OUTRO } from './info.js?v=5';
+import { createAmbience } from './ambiente.js?v=3';
+
+// Datos exportados de la escena Unity (Coyanmahuida.unity).
+// rotY: rotación Y de cada "skydome"; next/prev: [yaw, pitch] en grados de las flechas
+// Avanzar / Retroceder, convertidas a coordenadas de la foto equirectangular.
+// gps: [latitud, longitud] leída de los metadatos de cada foto 360 (para el mapa).
+const NODES = [
+ {id:"158",rotY:-266.11,next:[-180,-18.19],prev:[174.23,-18.44],gps:[-36.824444,-72.731111]},
+ {id:"161",rotY:114.3,next:[159.97,-20.32],prev:[-11.76,-20.54],gps:[-36.824306,-72.731583]},
+ {id:"163",rotY:-259.79,next:[157.48,-23.49],prev:[10.8,-21.02],gps:[-36.824222,-72.731472]},
+ {id:"165",rotY:106.55,next:[167.37,-15.63],prev:[-55.66,-21.18],gps:[-36.82425,-72.731528]},
+ {id:"167",rotY:-287.49,next:[-157.36,-17.44],prev:[-10.24,-26.42],gps:[-36.824417,-72.731944]},
+ {id:"169",rotY:-77.61,next:[-8.05,-27.79],prev:[-167.29,-19.51],gps:[-36.823972,-72.731806]},
+ {id:"170",rotY:158.82,next:[109,-26.61],prev:[-89.31,-15.3],gps:[-36.823778,-72.731667]},
+ {id:"173",rotY:-87.2,next:[0,-25.53],prev:[172.54,-28.03],gps:[-36.82375,-72.731528]},
+ {id:"174",rotY:-96.04,next:[0,-28.31],prev:[170.02,-20.3],gps:[-36.823806,-72.731722]},
+ {id:"176",rotY:279.12,next:[-28.55,-18.1],prev:[-167.46,-17.99],gps:[-36.823778,-72.731611]},
+ {id:"179",rotY:-100.15,next:[3.74,-19.18],prev:[168.81,-24.46],gps:[-36.8235,-72.731028]},
+ {id:"180",rotY:-140.03,next:[42.55,-21.91],prev:[164.53,-24.64],gps:[-36.823556,-72.730889]},
+ {id:"182",rotY:-89.63,next:[-1.93,-18.64],prev:[177.46,-22.65],gps:[-36.823556,-72.731028]},
+ {id:"185",rotY:81.58,next:[-180,-19.41],prev:[93.85,-29.37],gps:[-36.823722,-72.730972]},
+ {id:"186",rotY:-115.89,next:[-4.67,-39.13],prev:[-180,-18.53],gps:[-36.82375,-72.730944]},
+ {id:"188",rotY:-97.46,next:[0,-31.1],prev:[157.79,-27.14],gps:[-36.823667,-72.730917]},
+ {id:"190",rotY:-103.78,next:[5.17,-29.81],prev:[-172.3,-18.79],gps:[-36.823722,-72.730972]},
+ {id:"192",rotY:-83.38,next:[-14.35,-27.49],prev:[-174.89,-17.95],gps:[-36.824111,-72.731111]},
+ {id:"194",rotY:-106.79,next:[-5.94,-29.78],prev:[166.53,-23.43],gps:[-36.824306,-72.731222]},
+ {id:"196",rotY:-92.66,next:[5.1,-33.67],prev:[171.78,-19.96],gps:[-36.824306,-72.731222]},
+ {id:"198",rotY:855.2,next:[165.93,-21.45],prev:[174.23,-18.44],gps:[-36.824472,-72.731111]},
+ {id:"201",rotY:0,next:[0.57,-18.75],prev:[174.23,-18.44],gps:[-36.824444,-72.731167]}
+];
+const FADE_MS = 800;            // fundido a negro (ida + vuelta)
+const rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
+const wrap = d => ((d % 360) + 540) % 360 - 180;
+
+// Si dos flechas quedaron casi en el mismo lugar (valor por defecto en Unity), separa "Retroceder".
+for (const n of NODES) if (Math.abs(wrap(n.next[0] - n.prev[0])) < 25) n.prev = [wrap(n.next[0] + 180), n.prev[1]];
+
+const $ = s => document.querySelector(s);
+const ICONS = {
+  flora: '<path d="M12 21V11"/><path d="M12 11c0-4 3-7 8-7 0 5-3 8-8 8"/><path d="M12 14c0-3-2.5-5.5-7-5.5 0 4 2.5 6.5 7 6.5"/>',
+  fauna: '<path d="M4 15c2-6 7-9 13-8l3-2-1 4c1 4-2 8-8 8-3 0-5-1-7-2z"/><circle cx="15" cy="10" r=".6"/>',
+  historia: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  paisaje: '<path d="M3 19l6-9 4 5 3-4 5 8z"/><circle cx="17" cy="6" r="2"/>',
+  visita: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  aviso: '<path d="M12 3.5L2.5 20h19z"/><path d="M12 10v4.5M12 17.2v.3"/>',
+};
+const TIP_ICONS = {
+  nivel: '<path d="M3 20l5-8 4 5 3-4 6 7z"/>',
+  reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  ruta: '<path d="M5 19c3 0 3-6 7-6s4-6 7-6"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="7" r="2"/>',
+  ropa: '<path d="M8 4l-5 3 2 4 3-1v10h8V10l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 5.5 8 4z"/>',
+  sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  cuida: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>',
+};
+const TAGS = { flora: 'Flora', fauna: 'Fauna', historia: 'Historia', paisaje: 'Paisaje', visita: 'Visita', aviso: 'Aviso y recomendación' };
+const svg = t => `<svg viewBox="0 0 24 24">${ICONS[t] || ICONS.paisaje}</svg>`;
+
+let USE_TILES = false;
+try { USE_TILES = (await fetch('panos/158/tiles/0_0.jpg', { method: 'HEAD' })).ok; } catch (e) {}
+const pano = n => USE_TILES
+  ? { width: 8192, cols: 16, rows: 8, baseUrl: `panos/${n.id}/base.jpg`, tileUrl: (c, r) => `panos/${n.id}/tiles/${c}_${r}.jpg` }
+  : `panos/${n.id}/pano.jpg`;
+
+let idx = 0, busy = false;
+const seen = new Set();
+const totalInfo = Object.values(INFO).reduce((a, l) => a + l.length, 0);
+// Igual que en el Quest: la dirección hacia la que miras en el "mundo" se conserva al cambiar de punto.
+// mundo = yawFoto + 90 + rotY  →  yawFoto = mundo - 90 - rotY
+const startYaw = n => wrap(0 - 90 - n.rotY);
+
+let viewer;
+try {
+  viewer = new Viewer({
+    container: $('#viewer'),
+    adapter: USE_TILES ? EquirectangularTilesAdapter : undefined,
+    panorama: pano(NODES[0]),
+    defaultYaw: rad(startYaw(NODES[0])), defaultPitch: rad(-5), defaultZoomLvl: 20,
+    navbar: false, loadingTxt: 'Cargando…', mousewheelCtrlKey: false,
+    lang: { loadError: 'No se pudo cargar la imagen' },
+    plugins: [MarkersPlugin, [GyroscopePlugin, { touchmove: true }]],
+  });
+} catch (e) { $('#err').style.display = 'grid'; throw e; }
+const markers = viewer.getPlugin(MarkersPlugin);
+const gyro = viewer.getPlugin(GyroscopePlugin);
+
+// ---------- Marcadores ----------
+const arrowHtml = cls => `<div class="arrow ${cls}"><div class="disc"><svg viewBox="0 0 24 24">${cls.includes('end') ? '<path d="M6 12l4 4 8-9"/>' : '<path d="M6 15l6-6 6 6"/>'}</svg></div></div>`;
+function placeMarkers() {
+  const n = NODES[idx], last = idx === NODES.length - 1, list = [];
+  list.push({ id: 'next', position: { yaw: rad(n.next[0]), pitch: rad(n.next[1]) }, html: arrowHtml(last ? 'next end' : 'next'), size: { width: 96, height: 96 }, anchor: 'center center', tooltip: { content: last ? 'Finalizar recorrido' : 'Avanzar', position: 'top center' } });
+  if (idx > 0) list.push({ id: 'prev', position: { yaw: rad(n.prev[0]), pitch: rad(n.prev[1]) }, html: arrowHtml('prev'), size: { width: 96, height: 96 }, anchor: 'center center', tooltip: { content: 'Retroceder', position: 'top center' } });
+  (INFO[n.id] || []).forEach((h, k) => {
+    const key = n.id + ':' + k;
+    list.push({ id: 'info:' + k, position: { yaw: rad(h.yaw), pitch: rad(h.pitch) }, html: `<div class="hot ${h.type}${seen.has(key) ? ' seen' : ''}"><div class="dot">${svg(h.type)}</div></div>`, size: { width: 52, height: 52 }, anchor: 'center center', tooltip: { content: h.title, position: 'top center' } });
+  });
+  markers.setMarkers(list);
+}
+markers.addEventListener('select-marker', ({ marker }) => {
+  if (marker.id === 'next') go(1);
+  else if (marker.id === 'prev') go(-1);
+  else if (marker.id.startsWith('info:')) openCard(+marker.id.slice(5));
+});
+
+// ---------- Ficha informativa ----------
+let cardKey = null;
+function openCard(k) {
+  const n = NODES[idx], h = INFO[n.id][k], key = n.id + ':' + k;
+  $('#cardTag').innerHTML = svg(h.type) + TAGS[h.type];
+  $('#cardTitle').innerHTML = h.title;
+  $('#cardSci').textContent = h.sci || '';
+  $('#cardSci').hidden = !h.sci;
+  $('#cardText').innerHTML = h.text;
+  $('#card').hidden = false; $('#card').classList.toggle('warn', h.type === 'aviso'); cardKey = key;
+  $('#help').classList.add('gone');
+  if (!seen.has(key)) { seen.add(key); markers.updateMarker({ id: 'info:' + k, html: `<div class="hot ${h.type} seen"><div class="dot">${svg(h.type)}</div></div>` }); }
+  try { viewer.animate({ yaw: rad(h.yaw), pitch: rad(Math.max(-20, Math.min(25, h.pitch))), speed: '6rpm' }); } catch (e) {}
+}
+function closeCard() { $('#card').hidden = true; cardKey = null; }
+$('#cardClose').addEventListener('click', closeCard);
+
+// ---------- Navegación ----------
+function updateUi() {
+  $('#count').innerHTML = `<span class="lbl">Punto </span><b>${idx + 1}</b> / ${NODES.length}`;
+  document.querySelectorAll('#strip button').forEach((b, i) => { b.classList.toggle('on', i === idx); if (i === idx) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
+  if (started) try { history.replaceState(null, '', '#punto-' + (idx + 1)); } catch (e) {}
+}
+function preload(i) {
+  if (i < 0 || i >= NODES.length) return;
+  const n = NODES[i], img = new Image(); img.src = USE_TILES ? `panos/${n.id}/base.jpg` : `panos/${n.id}/pano.jpg`;
+}
+async function jump(target, opts = {}) {
+  if (busy || target < 0 || target >= NODES.length || (target === idx && !opts.force)) return;
+  busy = true; closeCard();
+  const from = NODES[idx], to = NODES[target];
+  const cur = viewer.getPosition();
+  const yaw = opts.reset ? startYaw(to) : wrap(deg(cur.yaw) + from.rotY - to.rotY);
+  const pitch = opts.reset ? rad(-5) : cur.pitch;
+  markers.clearMarkers();
+  try {
+    await viewer.setPanorama(pano(to), { position: { yaw: rad(yaw), pitch }, transition: { speed: FADE_MS, rotation: false, effect: 'black' }, showLoader: false });
+  } catch (e) { console.error(e); }
+  idx = target; visited.add(idx); placeMarkers(); updateUi(); drawMap(); busy = false;
+  preload(idx + 1); preload(idx - 1);
+}
+function go(step) {
+  const t = idx + step;
+  if (t >= NODES.length) { showOutro(); return; }
+  if (t < 0) return;
+  jump(t);
+}
+
+
+// ---------- Sonido ambiente y música ----------
+const amb = createAmbience();
+const pref = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+let natureOn = pref('coyan-sonido', 'on') !== 'off', musicOn = pref('coyan-musica', 'on') !== 'off';
+let natureVol = +pref('coyan-vol-naturaleza', 70), musicVol = +pref('coyan-vol-musica', 35);
+let soundStarted = false;
+function paintSound() {
+  const b = $('#bSound'), any = natureOn || musicOn;
+  b.querySelector('.mute').style.display = any ? 'none' : '';
+  b.querySelectorAll('.w1,.w2').forEach(p => p.style.display = any ? '' : 'none');
+  $('#swNature').checked = natureOn; $('#swMusic').checked = musicOn;
+  $('#volNature').value = natureVol; $('#volMusic').value = musicVol;
+  $('#volNature').disabled = !natureOn; $('#volMusic').disabled = !musicOn;
+}
+function applySound() {
+  if (!soundStarted) return;
+  amb.setNatureVolume(natureVol / 100); amb.setOn(natureOn);
+  amb.setMusicVolume(musicVol / 100 * 0.6); amb.setMusic(musicOn);
+}
+function startSound() { if (!amb.supported) return; soundStarted = true; amb.start(); applySound(); }
+$('#bSound').addEventListener('click', () => {
+  if (!soundStarted) startSound();
+  const p = $('#soundPanel'); p.hidden = !p.hidden; $('#bSound').setAttribute('aria-expanded', String(!p.hidden));
+  if (!p.hidden) { $('#strip').hidden = true; $('#bStrip').setAttribute('aria-pressed', 'false'); }
+});
+$('#swNature').addEventListener('change', e => { natureOn = e.target.checked; save('coyan-sonido', natureOn ? 'on' : 'off'); paintSound(); applySound(); });
+$('#swMusic').addEventListener('change', e => { musicOn = e.target.checked; save('coyan-musica', musicOn ? 'on' : 'off'); paintSound(); applySound(); });
+$('#volNature').addEventListener('input', e => { natureVol = +e.target.value; save('coyan-vol-naturaleza', natureVol); applySound(); });
+$('#volMusic').addEventListener('input', e => { musicVol = +e.target.value; save('coyan-vol-musica', musicVol); applySound(); });
+document.addEventListener('pointerdown', e => { if (!$('#soundPanel').hidden && !e.target.closest('#soundPanel,#bSound')) { $('#soundPanel').hidden = true; $('#bSound').setAttribute('aria-expanded', 'false'); } });
+if (!amb.supported) $('#bSound').hidden = true;
+paintSound();
+
+// ---------- Mapa (posiciones GPS de cada foto) ----------
+const visited = new Set([0]);
+const MAP = (() => {
+  const lat0 = NODES.reduce((a, n) => a + n.gps[0], 0) / NODES.length, lon0 = NODES.reduce((a, n) => a + n.gps[1], 0) / NODES.length;
+  let P = NODES.map(n => [(n.gps[1] - lon0) * 111320 * Math.cos(rad(lat0)), (n.gps[0] - lat0) * 110574]);
+  // suavizado leve: el GPS bajo los árboles tiene error de algunos metros
+  for (let pass = 0; pass < 2; pass++) P = P.map((p, i) => (i === 0 || i === P.length - 1) ? p : [0.25 * P[i - 1][0] + 0.5 * p[0] + 0.25 * P[i + 1][0], 0.25 * P[i - 1][1] + 0.5 * p[1] + 0.25 * P[i + 1][1]]);
+  const xs = P.map(p => p[0]), ys = P.map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const S = Math.min(240 / (maxX - minX), 240 / (maxY - minY));
+  const ox = 150 - (minX + maxX) / 2 * S, oy = 150 + (minY + maxY) / 2 * S;
+  const xy = P.map(p => [ox + p[0] * S, oy - p[1] * S]);
+  const bearing = (a, b) => (deg(Math.atan2(P[b][0] - P[a][0], P[b][1] - P[a][1])) + 360) % 360;
+  return { xy, S, bearing };
+})();
+function curve(pts) {
+  if (pts.length < 2) return '';
+  let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += ` C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+function drawMap() {
+  const xy = MAP.xy, cur = xy[idx], full = curve(xy), done = curve(xy.slice(0, idx + 1));
+  const bar = 20 * MAP.S;
+  const pts = xy.map((p, i) => `<g class="pt${visited.has(i) ? ' v' : ''}" data-i="${i}"><title>Punto ${i + 1}</title><circle r="12" cx="${p[0]}" cy="${p[1]}" fill="transparent"/><circle class="d" r="4.5" cx="${p[0]}" cy="${p[1]}"/></g>`).join('');
+  $('#mapSvg').innerHTML = `
+    <path class="trail-case" d="${full}"/><path class="trail" d="${full}"/><path class="done" d="${done}"/>
+    ${pts}
+    <text class="lbl" x="${xy[0][0] + 10}" y="${xy[0][1] + 4}">Entrada</text>
+    <g id="coneG" transform="translate(${cur[0]} ${cur[1]})"><path class="cone" id="cone" d="M0 0 L-13 -34 A36 36 0 0 1 13 -34 Z"/>
+    <circle class="ring" r="8"/><circle class="me" r="7"/></g>
+    <g transform="translate(276 22)"><path d="M0 -12 L6 4 L0 0 L-6 4 Z" fill="#f3f1e8"/><text class="n" x="-4" y="17">N</text></g>
+    <g transform="translate(14 286)"><line class="scale" x1="0" y1="0" x2="${bar.toFixed(1)}" y2="0"/><line class="scale" x1="0" y1="-4" x2="0" y2="4"/><line class="scale" x1="${bar.toFixed(1)}" y1="-4" x2="${bar.toFixed(1)}" y2="4"/><text class="st" x="${(bar / 2).toFixed(1)}" y="-6" text-anchor="middle">20 m</text></g>`;
+  $('#mapPos').textContent = `${idx + 1} / ${NODES.length}`;
+  updateCone();
+}
+function updateCone() {
+  const c = document.getElementById('cone'); if (!c) return;
+  const n = NODES[idx], view = deg(viewer.getPosition().yaw);
+  let h;
+  if (idx < NODES.length - 1) h = MAP.bearing(idx, idx + 1) + (view - n.next[0]);
+  else h = MAP.bearing(idx, idx - 1) + (view - n.prev[0]);
+  c.setAttribute('transform', `rotate(${wrap(h).toFixed(1)})`);
+}
+$('#mapSvg').addEventListener('click', e => { const g = e.target.closest('.pt'); if (g) jump(+g.dataset.i); });
+viewer.addEventListener('position-updated', updateCone);
+let mapPref = !matchMedia('(max-width: 900px)').matches;
+function paintMap() { $('#map').hidden = !mapPref; $('#bMap').setAttribute('aria-pressed', String(mapPref)); }
+$('#bMap').addEventListener('click', () => { mapPref = !mapPref; paintMap(); });
+$('#mapClose').addEventListener('click', () => { mapPref = false; paintMap(); });
+paintMap();
+
+// ---------- Intro y cierre ----------
+$('#introTitle').textContent = INTRO.title;
+$('#introSub').textContent = INTRO.subtitle;
+$('#introBody').innerHTML = INTRO.paragraphs.map(p => `<p class="body">${p}</p>`).join('');
+$('#introStats').innerHTML = INTRO.stats.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+$('#introSrc').innerHTML = INTRO.sources.map(([t, u]) => `<li><a href="${u}" target="_blank" rel="noopener">${t}</a></li>`).join('');
+$('#outroTitle').textContent = OUTRO.title;
+$('#outroText').textContent = OUTRO.text;
+$('#outroVisit').textContent = OUTRO.visit;
+const tipsHtml = (INTRO.tips || []).map(t => `<div class="tip"><header><svg viewBox="0 0 24 24">${TIP_ICONS[t.icon] || ''}</svg>${t.title}</header><b>${t.value}</b><p>${t.text}</p></div>`).join('');
+$('#introTips').innerHTML = tipsHtml; $('#outroTips').innerHTML = tipsHtml;
+
+let drift = null, started = false, resumeIdx = null;
+function startDrift() {
+  stopDrift();
+  const step = () => { try { const p = viewer.getPosition(); viewer.rotate({ yaw: p.yaw + 0.0008, pitch: p.pitch }); } catch (e) {} drift = requestAnimationFrame(step); };
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) drift = requestAnimationFrame(step);
+}
+function stopDrift() { if (drift) cancelAnimationFrame(drift); drift = null; }
+function setChrome(on) { for (const s of ['#title', '#bar', '#map', '#brand']) $(s).style.visibility = on ? '' : 'hidden'; if (!on) { $('#strip').hidden = true; $('#soundPanel').hidden = true; $('#bStrip').setAttribute('aria-pressed', 'false'); closeCard(); } }
+function showIntro() { setChrome(false); $('#outro').hidden = true; $('#intro').hidden = false; if (started) { $('#bResume').textContent = 'Seguir donde estaba'; $('#bResume').hidden = false; resumeIdx = null; } else if (resumeIdx === null) $('#bResume').hidden = true; startDrift(); $('#bStart').focus({ preventScroll: true }); }
+function hideIntro() { $('#intro').hidden = true; stopDrift(); setChrome(true); }
+function showOutro() {
+  setChrome(false);
+  $('#outroSeen').textContent = `Descubriste ${seen.size} de ${totalInfo} puntos de información.`;
+  $('#outro').hidden = false; startDrift(); $('#bAgain').focus({ preventScroll: true });
+}
+function hideOutro() { $('#outro').hidden = true; stopDrift(); setChrome(true); }
+
+$('#bStart').addEventListener('click', async () => {
+  startSound(); hideIntro();
+  if (started && idx !== 0) await jump(0, { reset: true });
+  else try { viewer.animate({ yaw: rad(startYaw(NODES[0])), pitch: rad(-5), speed: '4rpm' }); } catch (e) {}
+  started = true;
+  $('#help').classList.remove('gone');
+  setTimeout(() => $('#help').classList.add('gone'), 9000);
+});
+$('#bResume').addEventListener('click', () => {
+  startSound(); hideIntro(); started = true;
+  if (resumeIdx !== null && resumeIdx !== idx) jump(resumeIdx);
+  resumeIdx = null;
+});
+$('#bAgain').addEventListener('click', async () => { hideOutro(); seen.clear(); visited.clear(); visited.add(0); await jump(0, { reset: true, force: true }); });
+$('#bBack').addEventListener('click', hideOutro);
+$('#bToIntro').addEventListener('click', () => { $('#outro').hidden = true; showIntro(); });
+$('#bAbout').addEventListener('click', showIntro);
+
+// ---------- Controles ----------
+$('#strip').innerHTML = NODES.map((n, i) => `<button data-i="${i}" aria-label="Ir al punto ${i + 1}"><img loading="lazy" src="panos/${n.id}/thumb.jpg" alt=""><span>${i + 1}</span></button>`).join('');
+$('#strip').addEventListener('click', e => { const b = e.target.closest('button'); if (b) jump(+b.dataset.i); });
+$('#bStrip').addEventListener('click', () => { const s = $('#strip'); s.hidden = !s.hidden; $('#soundPanel').hidden = true; $('#bStrip').setAttribute('aria-pressed', String(!s.hidden)); if (!s.hidden) s.querySelector('.on')?.scrollIntoView({ inline: 'center', block: 'nearest' }); });
+$('#bPrev').addEventListener('click', () => go(-1));
+$('#bNext').addEventListener('click', () => go(1));
+$('#bFull').addEventListener('click', () => { try { viewer.toggleFullscreen(); } catch (e) {} });
+// --- Giroscopio (mover la vista con el celular) ---
+const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+if (isTouch) $('#bGyro').hidden = false;            // en celulares se muestra siempre; si falla, se explica por qué
+gyro.addEventListener('gyroscope-updated', ({ gyroscopeEnabled }) => {
+  $('#bGyro').setAttribute('aria-pressed', String(gyroscopeEnabled));
+  if (gyroscopeEnabled) toast('Mueve el celular para mirar alrededor. Tócalo de nuevo para desactivar.');
+});
+function gyroHelp(reason) {
+  let msg = 'Tu navegador no entregó los datos de movimiento del celular.';
+  if (window.isSecureContext === false) msg = 'Para usar el movimiento del celular, el recorrido debe abrirse desde una dirección https:// (por ejemplo, publicado en GitHub Pages o Netlify).';
+  else if (inFrame) msg = 'En esta vista previa el navegador bloquea los sensores de movimiento. Funcionará cuando el recorrido esté publicado en su propio sitio con https:// (GitHub Pages, Netlify o el servidor de la institución).';
+  else if (reason === 'denied') msg = 'No se dio permiso de “Movimiento y orientación”. En iPhone: cierra la pestaña, vuelve a abrir el recorrido y acepta el permiso al tocar este botón.';
+  toast(msg, 9000);
+}
+$('#bGyro').addEventListener('click', async () => {
+  if (gyro.isEnabled()) { gyro.stop(); return; }
+  // iPhone/iPad: el permiso debe pedirse directamente en el toque del usuario
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    let r = 'denied';
+    try { r = await DeviceOrientationEvent.requestPermission(); } catch (e) { gyroHelp('blocked'); return; }
+    if (r !== 'granted') { gyroHelp('denied'); return; }
+  }
+  try {
+    const ok = await Promise.race([gyro.isSupported(), new Promise(res => setTimeout(() => res(false), 2500))]);
+    if (!ok) { gyroHelp('unsupported'); return; }
+    await gyro.start();
+  } catch (e) { gyroHelp('blocked'); }
+});
+let toastTimer = null;
+function toast(msg, ms = 4500) {
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, ms);
+}
+const overlayOpen = () => !$('#intro').hidden || !$('#outro').hidden;
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (cardKey) closeCard(); return; }
+  if (overlayOpen()) return;
+  if (e.key === 'PageDown' || (e.key === ' ' && e.target === document.body) || (e.shiftKey && e.key === 'ArrowRight')) { e.preventDefault(); go(1); }
+  if (e.key === 'PageUp' || (e.shiftKey && e.key === 'ArrowLeft')) { e.preventDefault(); go(-1); }
+});
+
+if (location.search.includes('debug')) window.__tour = { viewer, jump, openCard, NODES };
+viewer.addEventListener('ready', () => {
+  placeMarkers(); updateUi(); drawMap(); preload(1);
+  // La intro SIEMPRE se muestra al abrir; solo se cierra con los botones.
+  const m = /^#punto-(\d+)$/.exec(location.hash);
+  if (m) {
+    resumeIdx = Math.min(NODES.length, Math.max(1, +m[1])) - 1;
+    if (resumeIdx > 0) { $('#bResume').textContent = `Continuar en el punto ${resumeIdx + 1}`; $('#bResume').hidden = false; }
+  }
+}, { once: true });
+showIntro();
+</script>
+</body>
+</html>
