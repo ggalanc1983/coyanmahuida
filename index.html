@@ -176,12 +176,19 @@ details.src a{color:var(--moss)}
 #brand img{display:block;width:180px;height:auto;filter:drop-shadow(0 1px 4px rgba(0,0,0,.7))}
 .screen .made{display:flex;align-items:center;gap:14px;margin-top:26px;color:var(--muted);font-size:13px}
 .screen .made img{width:210px;height:auto}
-@media (max-width:1000px){#map{width:250px}#brand img{width:150px}}
+#brand .part{margin-top:6px}
+#brand .schools{display:flex;gap:8px}
+#brand .schools img{width:108px}
+.screen .credits{display:flex;flex-wrap:wrap;align-items:center;gap:14px 34px;margin-top:26px}
+.screen .credits .made{margin-top:0}
+.screen .made .schools{display:flex;gap:12px;flex-wrap:wrap}
+.screen .made .schools img{width:150px}
+@media (max-width:1000px){#map{width:250px}#brand>img{width:150px}#brand .schools img{width:90px}}
 @media (max-width:900px){
   #card{top:auto;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 68px);right:10px;left:10px;width:auto;max-height:55vh}
   #card[hidden]{transform:translateY(16px)}
   #brand{left:auto;right:12px;bottom:auto;top:max(14px,env(safe-area-inset-top));align-items:flex-end}
-  #brand img{width:120px}#brand span{font-size:10px}
+  #brand>img{width:120px}#brand span{font-size:10px}#brand .part,#brand .schools{display:none}
   #map{top:max(84px,calc(env(safe-area-inset-top) + 84px));right:10px;width:min(300px,calc(100vw - 20px))}
 }
 #err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;z-index:50;background:var(--bg)}
@@ -209,7 +216,7 @@ details.src a{color:var(--moss)}
   <svg id="mapSvg" viewBox="0 0 300 300" role="img" aria-label="Mapa con los puntos del recorrido"></svg>
   <p class="note">Toca un punto para ir a él. El cono muestra hacia dónde miras.</p>
 </section>
-<div id="brand"><span>Desarrollado por</span><img src="logo-citt.png" alt="CITT Duoc UC — Centro de Innovación y Transferencia Tecnológica"></div>
+<div id="brand"><span>Desarrollado por</span><img src="logo-citt.png" alt="CITT Duoc UC — Centro de Innovación y Transferencia Tecnológica"><span class="part">Participan</span><div class="schools"><img src="logo-com.png" alt="Duoc UC Escuela de Comunicación"><img src="logo-inf.png" alt="Duoc UC Escuela de Informática y Telecomunicaciones"></div></div>
 <section id="soundPanel" class="plate" hidden aria-label="Sonido">
   <div class="srow"><label class="sw"><input type="checkbox" id="swNature"><span></span></label><div class="sl"><b>Naturaleza</b><small>Aves, viento y hojas</small></div><input type="range" id="volNature" min="0" max="100" aria-label="Volumen naturaleza"></div>
   <div class="srow"><label class="sw"><input type="checkbox" id="swMusic"><span></span></label><div class="sl"><b>Música suave</b><small>Original, sin derechos</small></div><input type="range" id="volMusic" min="0" max="100" aria-label="Volumen música"></div>
@@ -242,7 +249,7 @@ details.src a{color:var(--moss)}
       <button class="btn ghost" id="bResume" hidden>Seguir donde estaba</button>
     </div>
     <details class="src"><summary>Fuentes de la información</summary><ul id="introSrc"></ul></details>
-    <div class="made"><span>Desarrollado por</span><img src="logo-citt.png" alt="CITT Duoc UC"></div>
+    <div class="credits"><div class="made"><span>Desarrollado por</span><img src="logo-citt.png" alt="CITT Duoc UC"></div><div class="made part"><span>Participan</span><div class="schools"><img src="logo-com.png" alt="Duoc UC Escuela de Comunicación"><img src="logo-inf.png" alt="Duoc UC Escuela de Informática y Telecomunicaciones"></div></div></div>
   </div>
 </section>
 
@@ -260,7 +267,7 @@ details.src a{color:var(--moss)}
       <button class="btn ghost" id="bBack">Volver al último punto</button>
       <button class="btn ghost" id="bToIntro">Ver introducción</button>
     </div>
-    <div class="made"><span>Desarrollado por</span><img src="logo-citt.png" alt="CITT Duoc UC"></div>
+    <div class="credits"><div class="made"><span>Desarrollado por</span><img src="logo-citt.png" alt="CITT Duoc UC"></div><div class="made part"><span>Participan</span><div class="schools"><img src="logo-com.png" alt="Duoc UC Escuela de Comunicación"><img src="logo-inf.png" alt="Duoc UC Escuela de Informática y Telecomunicaciones"></div></div></div>
   </div>
 </section>
 
